@@ -9,6 +9,10 @@ from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.applications.resnet50 import ResNet50, decode_predictions
 
+print('===============================================================================')
+print('= Starting Process ============================================================')
+print('===============================================================================')
+
 def process(img_path, resnet_model):
 	img = load_img(img_path, target_size = (224, 224))
 	img = img_to_array(img)
@@ -20,15 +24,12 @@ def process(img_path, resnet_model):
 	y = decode_predictions(y, top=1)[0]
 	return y, time.time() - start
 
-#===============================================================
-
 print('===============================================================================')
 print('= Load ResNet50 Pre-trained on ImageNet =======================================')
 print('===============================================================================')
-model = ResNet50(weights='imagenet')
 
-latencies = []
-data_size = []
+metrics = pm.PerformanceMetrics()
+model   = ResNet50(weights='imagenet')
 
 print('===============================================================================')
 print('= Start Benchmark =============================================================')
@@ -40,15 +41,14 @@ for file in directory.glob("*.jpg"):
 		break
 	file_path = file.resolve()
 	y, latency = process(file_path, model)
-	print(f"Image: {file.name} Predicted: {y} Latency: {latency}")
+	print(f"Image: {file.name} Predicted: {y[0][1]} Latency: {latency}")
 	i = i + 1
+	metrics.add_prediction(latency, file.name, os.path.getsize(file_path), y[0][1])
 
-	latencies.append(latency)
-	data_size.append( os.path.getsize(file_path) )
+print('===============================================================================')
+print('= Save Results ================================================================')
+print('===============================================================================')
 
-#print('===============================================================================')
-#print('= Print Results ===============================================================')
-#print('===============================================================================')
-
-metrics = pm.PerformanceMetrics(latencies, data_size)
-metrics.print_summary()
+metrics.save_predictions()
+metrics.save_metrics()
+metrics.save_cdf()
