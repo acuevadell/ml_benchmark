@@ -13,6 +13,11 @@ print('=========================================================================
 print('= Starting Process ============================================================')
 print('===============================================================================')
 
+def predict(img, resnet_model):
+	y = resnet_model.predict(img)
+	y = decode_predictions(y, top=1)[0]
+	return y[0][1]
+
 def process(img_path, resnet_model):
 	img = load_img(img_path, target_size = (224, 224))
 	img = img_to_array(img)
@@ -20,9 +25,9 @@ def process(img_path, resnet_model):
 	img = preprocess_input(img)
 	
 	start = time.time()
-	y = resnet_model.predict(img)
-	y = decode_predictions(y, top=1)[0]
+	y = predict(img, resnet_model)
 	return y, time.time() - start
+
 
 print('===============================================================================')
 print('= Load ResNet50 Pre-trained on ImageNet =======================================')
@@ -41,9 +46,9 @@ for file in directory.glob("*.jpg"):
 		break
 	file_path = file.resolve()
 	y, latency = process(file_path, model)
-	print(f"Image: {file.name} Predicted: {y[0][1]} Latency: {latency}")
+	print(f"Image: {file.name} Predicted: {y} Latency: {latency}")
 	i = i + 1
-	metrics.add_prediction(latency, file.name, os.path.getsize(file_path), y[0][1])
+	metrics.add_prediction(latency, file.name, os.path.getsize(file_path), y)
 
 print('===============================================================================')
 print('= Save Results ================================================================')
